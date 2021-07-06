@@ -12,14 +12,14 @@ class CsDarkNet53(nn.Module):
         input_channels = 32
 
         # Network
-        self.stage1 = Conv2dBatchLeaky(3, input_channels, 3, 1, activation='mish')
+        self.stage1 = Conv2dBatchLeaky(3, input_channels, 3, 1, activation='relu6')
         self.stage2 = Stage2(input_channels)
         self.stage3 = Stage3(4*input_channels)
         self.stage4 = Stage(4*input_channels, 8)
         self.stage5 = Stage(8*input_channels, 8)
         self.stage6 = Stage(16*input_channels, 4)
 
-        self.conv = Conv2dBatchLeaky(32*input_channels, 32*input_channels, 1, 1, activation='mish')
+        self.conv = Conv2dBatchLeaky(32*input_channels, 32*input_channels, 1, 1, activation='relu6')
         self.avgpool = nn.AdaptiveAvgPool2d((1,1))
         self.fc = nn.Linear(1024, num_classes)
 

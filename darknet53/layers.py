@@ -5,7 +5,7 @@ import torch.nn.functional as F
 
 class Conv2dBatchLeaky(nn.Module):
     """
-    This convenience layer groups a 2D convolution, a batchnorm and a leaky ReLU.
+    This convenience layer groups a 2D convolution, a batchnorm and a ReLU6.
     """
     def __init__(self, in_channels, out_channels, kernel_size, stride, leaky_slope=0.1):
         super(Conv2dBatchLeaky, self).__init__()
@@ -25,7 +25,7 @@ class Conv2dBatchLeaky(nn.Module):
         self.layers = nn.Sequential(
             nn.Conv2d(self.in_channels, self.out_channels, self.kernel_size, self.stride, self.padding, bias=False),
             nn.BatchNorm2d(self.out_channels),
-            nn.LeakyReLU(self.leaky_slope, inplace=True)
+            nn.ReLU6()
         )
 
     def __repr__(self):
@@ -44,9 +44,10 @@ class StageBlock(nn.Module):
             Conv2dBatchLeaky(nchannels, int(nchannels/2), 1, 1),
             Conv2dBatchLeaky(int(nchannels/2), nchannels, 3, 1)
         )
+        self.add = torch.nn.quantized.FloatFunctional()
 
     def forward(self, data):
-        return data + self.features(data)
+        return self.add.add(data, self.features(data))
 
 
 class Stage(nn.Module):
