@@ -25,8 +25,10 @@ class Conv2dBatchLeaky(nn.Module):
         self.layers = nn.Sequential(
             nn.Conv2d(self.in_channels, self.out_channels, self.kernel_size, self.stride, self.padding, bias=False),
             nn.BatchNorm2d(self.out_channels),
-            nn.LeakyReLU(self.leaky_slope, inplace=True)
         )
+        self.act = nn.LeakyReLU(self.leaky_slope, inplace=True)
+        self.quant = torch.quantization.QuantStub()
+        self.dequant = torch.quantization.DeQuantStub()
 
     def __repr__(self):
         s = '{name} ({in_channels}, {out_channels}, kernel_size={kernel_size}, stride={stride}, padding={padding}, negative_slope={leaky_slope})'
@@ -34,6 +36,9 @@ class Conv2dBatchLeaky(nn.Module):
 
     def forward(self, x):
         x = self.layers(x)
+        x = self.dequant(x)
+        x = self.act(x)
+        x = self.quant(x)
         return x
 
 class StageBlock(nn.Module):
@@ -44,9 +49,10 @@ class StageBlock(nn.Module):
             Conv2dBatchLeaky(nchannels, int(nchannels/2), 1, 1),
             Conv2dBatchLeaky(int(nchannels/2), nchannels, 3, 1)
         )
+        self.add = torch.nn.quantized.FloatFunctional()
 
     def forward(self, data):
-        return data + self.features(data)
+        return self.add.add(data, self.features(data))
 
 
 class Stage(nn.Module):
