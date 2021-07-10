@@ -6,18 +6,18 @@ from torchsummary import summary
 __all__ = ['CsDarkNet53']
 
 class CsDarkNet53(nn.Module):
-    def __init__(self, num_classes):
+    def __init__(self, num_classes, activation):
         super(CsDarkNet53, self).__init__()
 
         input_channels = 32
 
         # Network
-        self.stage1 = Conv2dBatchLeaky(3, input_channels, 3, 1, activation='mish')
-        self.stage2 = Stage2(input_channels)
-        self.stage3 = Stage3(4*input_channels)
-        self.stage4 = Stage(4*input_channels, 8)
-        self.stage5 = Stage(8*input_channels, 8)
-        self.stage6 = Stage(16*input_channels, 4)
+        self.stage1 = Conv2dBatchLeaky(3, input_channels, 3, 1, activation=activation)
+        self.stage2 = Stage2(input_channels, activation)
+        self.stage3 = Stage3(4*input_channels, activation)
+        self.stage4 = Stage(4*input_channels, 8, activation)
+        self.stage5 = Stage(8*input_channels, 8, activation)
+        self.stage6 = Stage(16*input_channels, 4, activation)
 
         self.conv = Conv2dBatchLeaky(32*input_channels, 32*input_channels, 1, 1, activation='mish')
         self.avgpool = nn.AdaptiveAvgPool2d((1,1))

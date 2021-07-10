@@ -3,6 +3,7 @@ import torch.nn as nn
 from layers import *
 from collections import OrderedDict
 import torch.backends.cudnn as cudnn
+import time
 
 class DarkNet53(nn.Module):
     def __init__(self, num_classes):
@@ -53,13 +54,16 @@ if __name__ == "__main__":
         device = torch.device("cpu")
 
     darknet = DarkNet53(num_classes=10)
+    start = time.time()
     with torch.no_grad():
         darknet.eval()
-        data = torch.rand(1,3,256,256)
+        data = torch.rand(1,3,384,640)
         try:
             print(darknet(data))
         except Exception as e:
             print(e)
+    end = time.time()
+    print(end-start)
 
 
 

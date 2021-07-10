@@ -61,11 +61,11 @@ class Conv2dBatchLeaky(nn.Module):
 
 class SmallBlock(nn.Module):
 
-    def __init__(self, nchannels):
+    def __init__(self, nchannels, activation):
         super().__init__()
         self.features = nn.Sequential(
-            Conv2dBatchLeaky(nchannels, nchannels, 1, 1, activation='mish'),
-            Conv2dBatchLeaky(nchannels, nchannels, 3, 1, activation='mish')
+            Conv2dBatchLeaky(nchannels, nchannels, 1, 1, activation=activation),
+            Conv2dBatchLeaky(nchannels, nchannels, 3, 1, activation=activation)
         )
         self.add = torch.nn.quantized.FloatFunctional()
         # conv_shortcut
@@ -74,7 +74,7 @@ class SmallBlock(nn.Module):
         shortcut后不接任何conv
         '''
         # self.active_linear = Conv2dBatchLeaky(nchannels, nchannels, 1, 1, activation='linear')
-        # self.conv_shortcut = Conv2dBatchLeaky(nchannels, nchannels, 1, 1, activation='mish')
+        # self.conv_shortcut = Conv2dBatchLeaky(nchannels, nchannels, 1, 1, activation=activation)
 
 
     def forward(self, data):
@@ -87,17 +87,17 @@ class SmallBlock(nn.Module):
 
 class Stage2(nn.Module):
 
-    def __init__(self, nchannels):
+    def __init__(self, nchannels, activation):
         super().__init__()
         # stage2 32
-        self.conv1 = Conv2dBatchLeaky(nchannels, 2*nchannels, 3, 2, activation='mish')
-        self.split0 = Conv2dBatchLeaky(2*nchannels, 2*nchannels, 1, 1, activation='mish')
-        self.split1 = Conv2dBatchLeaky(2*nchannels, 2*nchannels, 1, 1, activation='mish')
+        self.conv1 = Conv2dBatchLeaky(nchannels, 2*nchannels, 3, 2, activation=activation)
+        self.split0 = Conv2dBatchLeaky(2*nchannels, 2*nchannels, 1, 1, activation=activation)
+        self.split1 = Conv2dBatchLeaky(2*nchannels, 2*nchannels, 1, 1, activation=activation)
 
-        self.conv2 = Conv2dBatchLeaky(2*nchannels, nchannels, 1, 1, activation='mish')
-        self.conv3 = Conv2dBatchLeaky(nchannels, 2*nchannels, 3, 1, activation='mish')
+        self.conv2 = Conv2dBatchLeaky(2*nchannels, nchannels, 1, 1, activation=activation)
+        self.conv3 = Conv2dBatchLeaky(nchannels, 2*nchannels, 3, 1, activation=activation)
 
-        self.conv4 = Conv2dBatchLeaky(2*nchannels, 2*nchannels, 1, 1, activation='mish')
+        self.conv4 = Conv2dBatchLeaky(2*nchannels, 2*nchannels, 1, 1, activation=activation)
         self.add = torch.nn.quantized.FloatFunctional()
 
 
@@ -115,19 +115,19 @@ class Stage2(nn.Module):
         return route
 
 class Stage3(nn.Module):
-    def __init__(self, nchannels):
+    def __init__(self, nchannels, activation):
         super().__init__()
         # stage3 128
-        self.conv1 = Conv2dBatchLeaky(nchannels, int(nchannels/2), 1, 1, activation='mish')
-        self.conv2 = Conv2dBatchLeaky(int(nchannels/2), nchannels, 3, 2, activation='mish')
+        self.conv1 = Conv2dBatchLeaky(nchannels, int(nchannels/2), 1, 1, activation=activation)
+        self.conv2 = Conv2dBatchLeaky(int(nchannels/2), nchannels, 3, 2, activation=activation)
 
-        self.split0 = Conv2dBatchLeaky(nchannels, int(nchannels/2), 1, 1, activation='mish')
-        self.split1 = Conv2dBatchLeaky(nchannels, int(nchannels/2), 1, 1, activation='mish')
+        self.split0 = Conv2dBatchLeaky(nchannels, int(nchannels/2), 1, 1, activation=activation)
+        self.split1 = Conv2dBatchLeaky(nchannels, int(nchannels/2), 1, 1, activation=activation)
 
-        self.block1 = SmallBlock(int(nchannels/2))
-        self.block2 = SmallBlock(int(nchannels/2))
+        self.block1 = SmallBlock(int(nchannels/2), activation)
+        self.block2 = SmallBlock(int(nchannels/2), activation)
 
-        self.conv3 = Conv2dBatchLeaky(int(nchannels/2), int(nchannels/2), 1, 1, activation='mish')
+        self.conv3 = Conv2dBatchLeaky(int(nchannels/2), int(nchannels/2), 1, 1, activation=activation)
 
     def forward(self, data):
         conv1 = self.conv1(data)
@@ -147,20 +147,20 @@ class Stage3(nn.Module):
 
 # Stage4 Stage5 Stage6
 class Stage(nn.Module):
-    def __init__(self, nchannels, nblocks):
+    def __init__(self, nchannels, nblocks, activation):
         super().__init__()
         # stage4 : 128
         # stage5 : 256
         # stage6 : 512
-        self.conv1 = Conv2dBatchLeaky(nchannels, nchannels, 1, 1, activation='mish')
-        self.conv2 = Conv2dBatchLeaky(nchannels, 2*nchannels, 3, 2, activation='mish')
-        self.split0 = Conv2dBatchLeaky(2*nchannels, nchannels, 1, 1, activation='mish')
-        self.split1 = Conv2dBatchLeaky(2*nchannels, nchannels, 1, 1, activation='mish')
+        self.conv1 = Conv2dBatchLeaky(nchannels, nchannels, 1, 1, activation=activation)
+        self.conv2 = Conv2dBatchLeaky(nchannels, 2*nchannels, 3, 2, activation=activation)
+        self.split0 = Conv2dBatchLeaky(2*nchannels, nchannels, 1, 1, activation=activation)
+        self.split1 = Conv2dBatchLeaky(2*nchannels, nchannels, 1, 1, activation=activation)
         blocks = []
         for i in range(nblocks):
-            blocks.append(SmallBlock(nchannels))
+            blocks.append(SmallBlock(nchannels, activation))
         self.blocks = nn.Sequential(*blocks)
-        self.conv4 = Conv2dBatchLeaky(nchannels, nchannels, 1, 1, activation='mish')
+        self.conv4 = Conv2dBatchLeaky(nchannels, nchannels, 1, 1, activation=activation)
 
     def forward(self,data):
         conv1 = self.conv1(data)

@@ -8,6 +8,7 @@ from tqdm import trange
 
 import time
 import torch
+import argparse
 
 def quantize_model(model, backend):
     _dummy_input_data = torch.rand(1, 3, 384, 640)
@@ -25,10 +26,16 @@ def quantize_model(model, backend):
             activation=torch.quantization.default_observer,
             weight=torch.quantization.default_weight_observer)
 
-    model.fuse_model()
-    torch.quantization.prepare(model, inplace=True)
-    model(_dummy_input_data)
-    torch.quantization.convert(model, inplace=True)
+    try:
+        print("Fuse model...")
+        model.fuse_model()
+        print("Prepare...")
+        torch.quantization.prepare(model, inplace=True)
+        model(_dummy_input_data)
+        print("Convert...")
+        torch.quantization.convert(model, inplace=True)
+    except Exception as e:
+        print(e)
 
     return
 
@@ -64,19 +71,29 @@ class QuantizableCSPDarkNet(CsDarkNet53):
     def fuse_model(self):
         pass 
 
-def main():
-    qdn = QuantizableDarkNet(2)
-#    qdn = QuantizableCSPDarkNet(2)
+def main(args):
+    itr = 20
+
+#    qdn = QuantizableDarkNet(2)
+    qdn = QuantizableCSPDarkNet(2, 'leaky') # leaky, mish, linear
     qdn.eval()
     quantize_model(qdn, 'qnnpack')
+
     start = time.time()
     img = torch.randn(1,3,384,640)
+
     with torch.no_grad():
-        with trange(20) as t:
+        with trange(itr) as t:
             for _ in t:
-                qdn.forward(img)
+                try:
+                    qdn.forward(img)
+                except Exception as e:
+                    print(e)
     end = time.time()
-    print(end - start)
+    avg_t = (end-start)/itr
+    print("Average time:", avg_t)
 
 if __name__ == '__main__':
-   main()
+    parser = argparse.ArgumentParser()
+    args = parser.parse_args()
+    main(args)
