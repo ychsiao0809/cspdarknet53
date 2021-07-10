@@ -34,13 +34,17 @@ class Conv2dBatchLeaky(nn.Module):
             self.layers = nn.Sequential(
                 nn.Conv2d(self.in_channels, self.out_channels, self.kernel_size, self.stride, self.padding, bias=False),
                 nn.BatchNorm2d(self.out_channels),
-                nn.LeakyReLU(self.leaky_slope, inplace=True)
+                torch.quantization.DeQuantStub(),
+                nn.LeakyReLU(self.leaky_slope, inplace=True),
+                torch.quantization.QuantStub()
             )
         elif activation == "mish":
             self.layers = nn.Sequential(
                 nn.Conv2d(self.in_channels, self.out_channels, self.kernel_size, self.stride, self.padding, bias=False),
                 nn.BatchNorm2d(self.out_channels),
-                Mish()
+                torch.quantization.DeQuantStub(),
+                Mish(),
+                torch.quantization.QuantStub()
             )
         elif activation == "linear":
             self.layers = nn.Sequential(
@@ -63,6 +67,7 @@ class SmallBlock(nn.Module):
             Conv2dBatchLeaky(nchannels, nchannels, 1, 1, activation='mish'),
             Conv2dBatchLeaky(nchannels, nchannels, 3, 1, activation='mish')
         )
+        self.add = torch.nn.quantized.FloatFunctional()
         # conv_shortcut
         '''
         参考 https://github.com/bubbliiiing/yolov4-pytorch
@@ -73,7 +78,7 @@ class SmallBlock(nn.Module):
 
 
     def forward(self, data):
-        short_cut = data + self.features(data)
+        short_cut = self.add.add(data, self.features(data))
         # active_linear = self.conv_shortcut(short_cut)
 
         return short_cut
@@ -93,6 +98,7 @@ class Stage2(nn.Module):
         self.conv3 = Conv2dBatchLeaky(nchannels, 2*nchannels, 3, 1, activation='mish')
 
         self.conv4 = Conv2dBatchLeaky(2*nchannels, 2*nchannels, 1, 1, activation='mish')
+        self.add = torch.nn.quantized.FloatFunctional()
 
 
     def forward(self, data):
@@ -102,7 +108,7 @@ class Stage2(nn.Module):
         conv2 = self.conv2(split1)
         conv3 = self.conv3(conv2)
 
-        shortcut = split1 + conv3
+        shortcut = self.add.add(split1, conv3)
         conv4 = self.conv4(shortcut)
 
         route = torch.cat([split0, conv4], dim=1)
