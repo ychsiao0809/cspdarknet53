@@ -65,8 +65,8 @@ class QuantizableCSPDarkNet(CsDarkNet53):
         pass 
 
 def main():
-    qdn = QuantizableDarkNet(2)
-#   qdn = QuantizableCSPDarkNet(2)
+#    qdn = QuantizableDarkNet(2)
+    qdn = QuantizableCSPDarkNet(2, 'relu6')
     qdn.eval()
     quantize_model(qdn, 'qnnpack')
     start = time.time()
