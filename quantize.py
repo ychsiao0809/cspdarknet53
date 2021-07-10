@@ -26,16 +26,13 @@ def quantize_model(model, backend):
             activation=torch.quantization.default_observer,
             weight=torch.quantization.default_weight_observer)
 
-    try:
-        print("Fuse model...")
-        model.fuse_model()
-        print("Prepare...")
-        torch.quantization.prepare(model, inplace=True)
-        model(_dummy_input_data)
-        print("Convert...")
-        torch.quantization.convert(model, inplace=True)
-    except Exception as e:
-        print(e)
+    print("Fuse model...")
+    model.fuse_model()
+    print("Prepare...")
+    torch.quantization.prepare(model, inplace=True)
+    model(_dummy_input_data)
+    print("Convert...")
+    torch.quantization.convert(model, inplace=True)
 
     return
 
@@ -85,10 +82,7 @@ def main(args):
     with torch.no_grad():
         with trange(itr) as t:
             for _ in t:
-                try:
-                    qdn.forward(img)
-                except Exception as e:
-                    print(e)
+                qdn.forward(img)
     end = time.time()
     avg_t = (end-start)/itr
     print("Average time:", avg_t)
