@@ -10,7 +10,7 @@ import time
 import torch
 
 def quantize_model(model, backend):
-    _dummy_input_data = torch.rand(1, 3, 224, 224)
+    _dummy_input_data = torch.rand(1, 3, 384, 640)
     if backend not in torch.backends.quantized.supported_engines:
         raise RuntimeError("Quantized backend not supported ")
     torch.backends.quantized.engine = backend
@@ -65,14 +65,14 @@ class QuantizableCSPDarkNet(CsDarkNet53):
         pass 
 
 def main():
-    qdn = QuantizableDarkNet(1000)
-#   qdn = QuantizableCSPDarkNet(1000)
+    qdn = QuantizableDarkNet(2)
+#   qdn = QuantizableCSPDarkNet(2)
     qdn.eval()
     quantize_model(qdn, 'qnnpack')
     start = time.time()
     img = torch.randn(1,3,384,640)
     with torch.no_grad():
-        with trange(100) as t:
+        with trange(20) as t:
             for _ in t:
                 qdn.forward(img)
     end = time.time()
