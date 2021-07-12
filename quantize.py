@@ -3,7 +3,7 @@ sys.path.append('./darknet53')
 sys.path.append('./cspdarknet53')
 
 from darknet53 import DarkNet53
-from layers import Conv2dBatchLeaky
+from cslayers import Conv2dBatchLeaky
 from csdarknet53 import CsDarkNet53
 from tqdm import trange
 
@@ -65,10 +65,12 @@ class QuantizableCSPDarkNet(CsDarkNet53):
         return x
         
     def fuse_model(self):
-        pass 
+        for m in self.modules():
+            if isinstance(m, Conv2dBatchLeaky):
+                m.fuse_model()
 
 def main():
-#    qdn = QuantizableDarkNet(2)
+    #qdn = QuantizableDarkNet(2)
     qdn = QuantizableCSPDarkNet(2, 'relu6')
     qdn.eval()
     quantize_model(qdn, 'qnnpack')
