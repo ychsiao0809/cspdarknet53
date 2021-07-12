@@ -36,6 +36,9 @@ class Conv2dBatchLeaky(nn.Module):
         x = self.layers(x)
         return x
 
+    def fuse_model(self):
+        torch.quantization.fuse_modules(self.layers, ['0', '1'], inplace=True)
+
 class StageBlock(nn.Module):
 
     def __init__(self, nchannels):
