@@ -44,25 +44,28 @@ class QuantizableDarkNet(nn.Module):
         self.quant = torch.quantization.QuantStub()
         self.darknet = DarkNet53(num_classes)
         self.dequant = torch.quantization.DeQuantStub()
+
     def forward(self, x):
         x = self.quant(x)
         x = self.darknet(x)
         x = self.dequant(x)
         return x
+
     def fuse_model(self):
         for m in self.modules():
             if isinstance(m, Conv2dBatchLeaky):
                 m.fuse_model()
 
-class QuantizableCSPDarkNet(CsDarkNet53):
-    def __init__(self, *args, **kwargs):
-        super(QuantizableCSPDarkNet, self).__init__(*args, **kwargs)
+class QuantizableCSPDarkNet(nn.Module):
+    def __init__(self, num_classes, activation):
+        super(QuantizableCSPDarkNet, self).__init__()
         self.quant = torch.quantization.QuantStub()
+        self.cspdarknet = CsDarkNet53(num_classes, activation)
         self.dequant = torch.quantization.DeQuantStub()
         
     def forward(self, x):
         x = self.quant(x)
-        x = super(QuantizableCSPDarkNet, self).forward(x)
+        x = self.cspdarknet(x)
         x = self.dequant(x)
         return x
         
@@ -78,9 +81,9 @@ def main(args):
     if args.load:
         qdn = torch.jit.load(args.load)
     else:
-        if args.model is 'darknet':
+        if args.model == 'darknet':
             qdn = QuantizableDarkNet(2)
-        elif args.model is 'cspdarknet':
+        elif args.model == 'cspdarknet':
             qdn = QuantizableCSPDarkNet(2, 'relu6')
         else:
             print("Selected model not available")
@@ -105,7 +108,7 @@ if __name__ == '__main__':
     parser.add_argument("-s", "--save", default=None, help="Save model", type=str)
     parser.add_argument("-l", "--load", default=None, help="Load model from checkpoint", type=str)
     parser.add_argument("-i", "--inference", default=20, help="Number of inference", type=int)
-    parser.add_argument("-t", "--model", default="darknet", help="Choose model type", type=str)
+    parser.add_argument("-m", "--model", default="darknet", help="Choose model type", type=str)
     parser.add_argument("-b", "--backend", default="qnnpack", help="Select backend for PyTorch", type=str)
     args = parser.parse_args()
     main(args)
